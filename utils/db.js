@@ -15,7 +15,7 @@ class DBClient {
       this.db = this.client.db(dbName);
       this.isConnected = true;
     }).catch((err) => {
-      console.log("Somthis went");
+      console.log(err);
     });
   }
 
