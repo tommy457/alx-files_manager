@@ -40,7 +40,7 @@ class UsersController {
     const userId = await redisClient.get(`auth_${token}`);
 
     if (!userId) {
-      res.status(401).json({ error: 'Unauthorized1' });
+      res.status(401).json({ error: 'Unauthorized' });
     } else {
       const users = dbClient.db.collection('users');
       const idObject = new ObjectID(userId);
@@ -49,7 +49,7 @@ class UsersController {
         if (data) {
           res.status(200).json({ id: userId, email: data.email });
         } else {
-          res.status(401).json({ error: 'Unauthorized2' });
+          res.status(401).json({ error: 'Unauthorized' });
         }
       });
     }

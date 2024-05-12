@@ -8,7 +8,6 @@ class AuthController {
     const authData = req.headers.authorization.slice(6);
     const UserData = Buffer.from(authData, 'base64').toString('utf-8');
     const userEmail = UserData.split(':')[0];
-
     const hashedPassword = sha1(UserData.split(':')[1]);
 
     const users = dbClient.db.collection('users');
@@ -19,8 +18,6 @@ class AuthController {
       } else {
         const token = uuidv4();
         await redisClient.set(`auth_${token}`, user._id.toString(), 24 * 60 * 60);
-        console.log('hashedPassword');
-
         res.status(200).json({ token });
       }
     });
