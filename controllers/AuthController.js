@@ -14,7 +14,7 @@ class AuthController {
 
     users.findOne({ email: userEmail, password: hashedPassword }, async (err, user) => {
       if (!user) {
-        res.status(401).json({ error: 'Unauthorized' });
+        return res.status(401).json({ error: 'Unauthorized' });
       } else {
         const token = uuidv4();
         await redisClient.set(`auth_${token}`, user._id.toString(), 24 * 60 * 60);

@@ -25,11 +25,10 @@ class FilesController {
       const isPublic = req.body.isPublic || false;
       const { data } = req.body;
 
-      if (!name) res.status(400).json({ error: 'Missing name' });
-      if (!type || !(['folder', 'file', 'image'].includes(type))) res.status(400).json({ error: 'Missing type' });
-      if (!data && type !== 'folder') res.status(400).json({ error: 'Missing data' });
+      if (!name) return res.status(400).json({ error: 'Missing name' });
+      if (!type || !(['folder', 'file', 'image'].includes(type))) return res.status(400).json({ error: 'Missing type' });
+      if (!data && type !== 'folder') return res.status(400).json({ error: 'Missing data' });
       const files = dbClient.db.collection('files');
-      console.log(parentId);
       if (parentId) {
         const parentIdObject = new ObjectID(parentId);
         const file = await files.findOne({ _id: parentIdObject, userId: user._id });
