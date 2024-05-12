@@ -15,11 +15,10 @@ class AuthController {
     users.findOne({ email: userEmail, password: hashedPassword }, async (err, user) => {
       if (!user) {
         return res.status(401).json({ error: 'Unauthorized' });
-      } else {
-        const token = uuidv4();
-        await redisClient.set(`auth_${token}`, user._id.toString(), 24 * 60 * 60);
-        res.status(200).json({ token });
       }
+      const token = uuidv4();
+      await redisClient.set(`auth_${token}`, user._id.toString(), 24 * 60 * 60);
+      return res.status(200).json({ token });
     });
   }
 
@@ -28,11 +27,10 @@ class AuthController {
     const userId = await redisClient.get(`auth_${token}`);
 
     if (!userId) {
-      res.status(401).json({ error: 'Unauthorized' });
-      return;
+      return res.status(401).json({ error: 'Unauthorized' });
     }
     await redisClient.del(`auth_${token}`);
-    res.status(204).json({});
+    return res.status(204).json({});
   }
 }
 
