@@ -4,7 +4,7 @@ import dbClient from '../utils/db';
 import redisClient from '../utils/redis';
 
 class UsersController {
-  static postNew(req, res) {
+  static async postNew(req, res) {
     const { email } = req.body;
     const { password } = req.body;
 
@@ -18,20 +18,19 @@ class UsersController {
     }
 
     const users = dbClient.db.collection('users');
-    users.findOne({ email }, (err, data) => {
+    await users.findOne({ email }, (err, data) => {
       if (data) {
         res.status(400).json({ error: 'Already exist' });
-      } else {
-        const hashedPassword = sha1(password);
-        users.insertOne({
-          email,
-          password: hashedPassword,
-        }).then((user) => {
-          res.status(201).json({ id: user.insertedId, email });
-        }).catch((err) => {
-          console.log(err);
-        });
       }
+    });
+    const hashedPassword = sha1(password);
+    await users.insertOne({
+      email,
+      password: hashedPassword,
+    }).then((user) => {
+      res.status(201).json({ id: user.insertedId, email });
+    }).catch((err) => {
+      console.log(err);
     });
   }
 
@@ -45,7 +44,7 @@ class UsersController {
       const users = dbClient.db.collection('users');
       const idObject = new ObjectID(userId);
 
-      users.findOne({ _id: idObject }, (err, data) => {
+      await users.findOne({ _id: idObject }, (err, data) => {
         if (data) {
           res.status(200).json({ id: userId, email: data.email });
         } else {

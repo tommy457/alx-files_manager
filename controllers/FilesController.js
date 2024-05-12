@@ -11,10 +11,10 @@ class FilesController {
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const users = dbClient.db.collection('users');
+    const users = await dbClient.db.collection('users');
     const idObject = new ObjectID(userId);
 
-    const user = users.findOne({ _id: idObject });
+    const user = await users.findOne({ _id: idObject });
     if (!user) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
@@ -28,7 +28,7 @@ class FilesController {
     if (!name) return res.status(400).json({ error: 'Missing name' });
     if (!type || !(['folder', 'file', 'image'].includes(type))) return res.status(400).json({ error: 'Missing type' });
     if (!data && type !== 'folder') return res.status(400).json({ error: 'Missing data' });
-    const files = dbClient.db.collection('files');
+    const files = await dbClient.db.collection('files');
     if (parentId) {
       const parentIdObject = new ObjectID(parentId);
       const file = await files.findOne({ _id: parentIdObject, userId });
@@ -41,7 +41,7 @@ class FilesController {
     }
 
     if (type === 'folder') {
-      files.insertOne({
+      await files.insertOne({
         userId,
         name,
         type,
@@ -63,13 +63,13 @@ class FilesController {
       const filePath = process.env.FOLDER_PATH || '/tmp/files_manager';
       const fileName = `${filePath}/${uuidv4()}`;
       const fileData = Buffer.from(data, 'base64').toString('utf-8');
-      fs.mkdir(filePath, (error) => {
+      await fs.mkdir(filePath, (error) => {
         if (error) console.log(error);
       });
-      fs.writeFile(fileName, fileData, 'utf-8', (error) => {
+      await fs.writeFile(fileName, fileData, 'utf-8', (error) => {
         if (error) console.log(error);
       });
-      files.insertOne({
+      await files.insertOne({
         userId,
         name,
         type,
