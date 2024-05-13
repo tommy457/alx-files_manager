@@ -18,7 +18,7 @@ class UsersController {
 
     const user = await getUser(req);
     if (user) {
-      res.status(401).json({ error: 'Already exist' });
+      res.status(400).json({ error: 'Already exist' });
       return;
     }
     const users = await dbClient.db.collection('users');

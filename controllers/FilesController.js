@@ -66,6 +66,46 @@ class FilesController {
     }
     return null;
   }
+
+  static async getShow(req, res) {
+    const user = await getUser(req);
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const fileId = req.params.id;
+    const fileIdObject = new ObjectID(fileId);
+    const files = await dbClient.db.collection('files');
+    const file = await files.findOne({ _id: fileIdObject, userId: user._id });
+
+    if (!file) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    return res.status(200).json({ file });
+  }
+
+  static async getIndex(req, res) {
+    const user = await getUser(req);
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const { parentId, page = 0 } = req.query;
+    const files = await dbClient.db.collection('files');
+    let query;
+    if (!parentId) {
+      query = { userId: ObjectID(user._id) };
+    } else {
+      query = { parentId: ObjectID(parentId), userId: ObjectID(user._id) };
+    }
+    const docs = await files.aggregate([
+      { $match: query },
+      { $skip: parseInt(page, 10) * 20 },
+      { $limit: 20 },
+      { $sort: { _id: 1 } },
+    ]).toArray();
+    const result = docs.map(({ _id, ...doc }) => ({ id: _id, ...doc }));
+
+    return res.status(200).json(result);
+  }
 }
 
 module.exports = FilesController;
