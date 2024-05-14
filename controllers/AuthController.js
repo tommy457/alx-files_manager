@@ -12,14 +12,13 @@ class AuthController {
 
     const users = await dbClient.db.collection('users');
 
-    await users.findOne({ email: userEmail, password: hashedPassword }, async (err, user) => {
-      if (!user) {
-        return res.status(401).json({ error: 'Unauthorized' });
-      }
-      const token = uuidv4();
-      await redisClient.set(`auth_${token}`, user._id.toString(), 24 * 60 * 60);
-      return res.status(200).json({ token });
-    });
+    const user = await users.findOne({ email: userEmail, password: hashedPassword });
+    if (!user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const token = uuidv4();
+    await redisClient.set(`auth_${token}`, user._id.toString(), 24 * 60 * 60);
+    return res.status(200).json({ token });
   }
 
   static async getDisconnect(req, res) {

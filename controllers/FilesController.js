@@ -1,6 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import { ObjectID } from 'mongodb';
 import fs from 'fs';
+import mime from 'mime-types';
+import { promisify } from 'util';
 import dbClient from '../utils/db';
 import getUser from '../utils/getUser';
 
@@ -113,12 +115,12 @@ class FilesController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     const fileId = req.params.id;
-    const fileIdObject = ObjectID(fileId)
+    const fileIdObject = ObjectID(fileId);
 
     const files = await dbClient.db.collection('files');
     const updateValue = { $set: { isPublic: true } };
     const options = { returnDocument: 'after' };
-    const filter = { _id: fileIdObject, userId: user._id }
+    const filter = { _id: fileIdObject, userId: user._id };
 
     const file = await files.findOneAndUpdate(filter, updateValue, options);
 
@@ -135,12 +137,12 @@ class FilesController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     const fileId = req.params.id;
-    const fileIdObject = ObjectID(fileId)
+    const fileIdObject = ObjectID(fileId);
 
     const files = await dbClient.db.collection('files');
     const updateValue = { $set: { isPublic: false } };
     const options = { returnDocument: 'after' };
-    const filter = { _id: fileIdObject, userId: user._id }
+    const filter = { _id: fileIdObject, userId: user._id };
 
     const file = await files.findOneAndUpdate(filter, updateValue, options);
 
@@ -150,8 +152,38 @@ class FilesController {
 
     return res.status(200).json(file.value);
   }
+
+  static async getFile(req, res) {
+    const user = await getUser(req);
+    if (!user) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    const fileId = req.params.id;
+    const fileIdObject = ObjectID(fileId);
+    const files = await dbClient.db.collection('files');
+    const filter = { _id: fileIdObject, userId: user._id };
+
+    const file = await files.findOne(filter);
+
+    if (!file || !file.isPublic) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    if (file.type === 'folder') {
+      return res.status(400).json({ error: "A folder doesn't have content" });
+    }
+
+    const readFile = promisify(fs.readFile);
+
+    try {
+      const data = await readFile(file.localPath);
+      const contentType = mime.contentType(file.name);
+      return res.header('Content-Type', contentType).status(200).send(data);
+    } catch (err) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+  }
 }
-
-
 
 module.exports = FilesController;
