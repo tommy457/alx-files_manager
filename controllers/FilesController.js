@@ -82,7 +82,7 @@ class FilesController {
     if (!file) {
       return res.status(404).json({ error: 'Not found' });
     }
-    return res.status(200).json({ file });
+    return res.status(200).json(file);
   }
 
   static async getIndex(req, res) {
