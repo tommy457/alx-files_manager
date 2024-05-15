@@ -3,8 +3,11 @@ import { ObjectID } from 'mongodb';
 import fs from 'fs';
 import mime from 'mime-types';
 import { promisify } from 'util';
+import Queue from 'bull';
 import dbClient from '../utils/db';
 import getUser from '../utils/getUser';
+
+const fileQueue = new Queue('fileQueue', 'redis://127.0.0.1:6379');
 
 class FilesController {
   static async postUpload(req, res) {
@@ -51,20 +54,26 @@ class FilesController {
       const filePath = process.env.FOLDER_PATH || '/tmp/files_manager';
       const fileName = `${filePath}/${uuidv4()}`;
       const fileData = Buffer.from(data, 'base64').toString('utf-8');
-      await fs.mkdir(filePath, () => {});
-      await fs.writeFile(fileName, fileData, 'utf-8', (error) => {
-        if (error) console.log(error);
-      });
+      await promisify(fs.mkdir)(filePath);
+      await promisify(fs.writeFile)(fileName, fileData, 'utf-8');
 
       await files.insertOne(
         {
           userId: user._id, name, type, isPublic, localPath: fileName, parentId,
         },
-      ).then((result) => res.status(201).json(
-        {
-          id: result.insertedId, userId: user._id, name, type, isPublic, parentId,
-        },
-      )).catch((error) => console.log(error));
+      ).then((result) => {
+        if (type === 'image') {
+          fileQueue.add({
+            userId: user._id,
+            fileId: result.insertedId,
+          });
+        }
+        return res.status(201).json(
+          {
+            id: result.insertedId, userId: user._id, name, type, isPublic, parentId,
+          },
+        );
+      }).catch((error) => console.log(error));
     }
     return null;
   }
@@ -177,7 +186,13 @@ class FilesController {
     const readFile = promisify(fs.readFile);
 
     try {
-      const data = await readFile(file.localPath);
+      let filePath = file.localPath;
+      const { size } = req.query;
+
+      if (size) {
+        filePath = `${file.localPath}_${size}`;
+      }
+      const data = await readFile(filePath);
       const contentType = mime.contentType(file.name);
       return res.header('Content-Type', contentType).status(200).send(data);
     } catch (err) {
